@@ -1,9 +1,15 @@
-import os
 import requests
 from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
+from telegram.ext import (
+    ApplicationBuilder,
+    CommandHandler,
+    MessageHandler,
+    ContextTypes,
+    filters
+)
 
-BOT_TOKEN = os.environ.get("BOT_TOKEN")
+# 🔑 BOT TOKEN (direct laga diya)
+BOT_TOKEN = "8410893007:AAEaTw2xpkpjbTKLp5hx7V8R5r6tbkXZ6cs"
 
 API_BASE = "https://org.proportalxc.workers.dev/?rc="
 
@@ -15,53 +21,49 @@ HEADERS = {
 # /start command
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "👋 Welcome to Gaadi Jaankari Bot\n\n"
-        "🚘 Yaha kisi bhi vehicle ki jaankari milegi\n\n"
-        "✍️ Vehicle number bhejo (example: BR05T4014)\n\n"
-        "📩 Support: @nanhipari3008"
+        "👋 Welcome to *Gaadi Jaankari Bot*\n\n"
+        "🚘 Vehicle number bhejo\n"
+        "📌 Example: `BR05T4014`\n\n"
+        "📩 Support: @nanhipari3008",
+        parse_mode="Markdown"
     )
 
-# vehicle lookup
+# Vehicle lookup
 async def vehicle_lookup(update: Update, context: ContextTypes.DEFAULT_TYPE):
     vehicle_no = update.message.text.strip().upper()
 
-    if len(vehicle_no) < 6:
-        await update.message.reply_text("❌ Invalid vehicle number")
-        return
-
     try:
-        url = API_BASE + vehicle_no
-        res = requests.get(url, headers=HEADERS, timeout=15)
-        api = res.json()
-
-        data = api.get("data", {})
+        r = requests.get(API_BASE + vehicle_no, headers=HEADERS, timeout=15)
+        data = r.json().get("data", {})
 
         owner = data.get("ownership_profile_analytics", {})
         reg = data.get("registration_identity_matrix", {})
-        region = data.get("regional_transport_intelligence_grid", {})
 
-        text = (
+        msg = (
             "🚘 *Vehicle Information*\n\n"
-            "👤 *Owner Information*\n"
-            f"• Name : {owner.get('legal_asset_holder', 'N/A')}\n"
-            f"• Address : {owner.get('physical_location_address', 'N/A')}\n\n"
+            "👤 *Owner Details*\n"
+            f"• Name: {owner.get('legal_asset_holder', 'N/A')}\n"
+            f"• Address: {owner.get('physical_location_address', 'N/A')}\n\n"
             "📄 *Registration Details*\n"
-            f"• Vehicle No : {vehicle_no}\n"
-            f"• RTO : {region.get('zonal_transport_office', 'N/A')}\n"
-            f"• Reg Date : {reg.get('inception_registration_date', 'N/A')}\n"
-            f"• Status : {reg.get('registration_status', 'N/A')}"
+            f"• Vehicle No: {vehicle_no}\n"
+            f"• RTO: {reg.get('issuing_authority', 'N/A')}\n"
+            f"• Reg Date: {reg.get('inception_registration_date', 'N/A')}\n"
         )
 
-        await update.message.reply_text(text, parse_mode="Markdown")
+        await update.message.reply_text(msg, parse_mode="Markdown")
 
-    except Exception as e:
-        await update.message.reply_text("⚠️ API fetch error")
+    except Exception:
+        await update.message.reply_text("⚠️ Data fetch error, try again")
 
-# app start
-app = ApplicationBuilder().token(BOT_TOKEN).build()
+def main():
+    # ✅ YAHI LINE ME TOKEN USE HOTA HAI
+    app = ApplicationBuilder().token(BOT_TOKEN).build()
 
-app.add_handler(CommandHandler("start", start))
-app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, vehicle_lookup))
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, vehicle_lookup))
 
-print("🤖 Bot running...")
-app.run_polling()
+    print("🤖 Bot is running...")
+    app.run_polling()
+
+if __name__ == "__main__":
+    main()
